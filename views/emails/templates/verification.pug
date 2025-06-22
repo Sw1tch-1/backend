@@ -1,0 +1,15 @@
+extends ../layouts/base.pug
+include ../components/button.pug
+include ../components/urgency.pug
+
+block content
+    h1(style="font-weight: normal; margin-bottom: 20px;")= `Дорогой(ая) ${name},`
+    p(style="margin-bottom: 15px;") Благодарим вас за регистрацию на нашем сайте! Для завершения регистрации и получения доступа к:
+    ul(style="margin-bottom: 20px; padding-left: 20px;")
+        li(style="margin-bottom: 8px;") Личному кабинету
+        li(style="margin-bottom: 8px;") Корзине
+        li(style="margin-bottom: 8px;") Эксклюзивным предложениям
+    p(style="margin-bottom: 15px;") Пожалуйста, подтвердите ваш email:
+    +button(verifyUrl, '✉️ Подтвердить email')
+    +urgency()
+    p(style="font-size: 14px; color: #999; margin-top: 25px;") Если вы не регистрировались, проигнорируйте это письмо 🤍

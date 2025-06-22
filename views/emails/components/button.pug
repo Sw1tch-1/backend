@@ -1,0 +1,15 @@
+mixin button(url, text)
+    table(role="presentation" border="0" cellpadding="0" cellspacing="0" style="margin: 25px 0;")
+        tr
+            td(align="center")
+                a(
+                    href=url
+                    style=`
+                        padding: 12px 24px;
+                            background: #d4a373;
+                            color: white !important;
+                            border-radius: 4px;
+                            display: inline-block;
+                            font-weight: bold;
+                            `
+                )= text
