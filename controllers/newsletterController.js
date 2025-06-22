@@ -25,10 +25,15 @@ class NewsletterController {
     static async unsubscribe(req, res) {
         try {
             const { email } = req.body; // Извлечение email из тела запроса
+            const thisUser = req.user; // Извлечение текущего пользователя из запроса
 
             // Проверка валидности email
             if (!validator.isEmail(email)) {
                 return res.status(400).json({ error: 'Invalid email' }); // Ошибка: email невалиден
+            }
+
+            if (email !== thisUser.email) {
+                return res.status(403).json({ error: 'You can only subscribe with your own email' }); // Ошибка: пользователь не может подписаться с чужим email
             }
 
             // Удаление подписчика из базы данных
@@ -76,6 +81,7 @@ class NewsletterController {
     static async subscribe(req, res) {
         try {
             const { email } = req.body; // Извлечение email из тела запроса
+            const thisUser = req.user; // Извлечение текущего пользователя из запроса
 
             // Проверка валидности email
             if (!validator.isEmail(email)) {
@@ -84,6 +90,11 @@ class NewsletterController {
 
             // Проверка, существует ли пользователь и подписчик
             const user = await User.findOne({ email });
+
+            if (email !== thisUser.email) {
+                return res.status(403).json({ error: 'You can only subscribe with your own email' }); // Ошибка: пользователь не может подписаться с чужим email
+            }
+
             const existingSubscriber = await Newsletter.findOne({ email });
 
             if (existingSubscriber) {
@@ -115,9 +126,6 @@ class NewsletterController {
         try {
             const { content } = req.body; // Извлечение контента из тела запроса
 
-            // Проверка доступности модели Newsletter
-            if (!Newsletter) console.log('Newsletter model is not available');
-
             // Получение активных подписчиков с данными пользователя
             const subscribers = await Newsletter.find({ isActive: true })
                 .populate({
@@ -134,7 +142,8 @@ class NewsletterController {
 
             res.json({
                 success: true,
-                sentTo: subscribers.length // Количество подписчиков, которым отправлено
+                sentTo: subscribers.length, // Количество подписчиков, которым отправлено
+                subscribers: subscribers
             });
         } catch (error) {
             res.status(500).json({ error: error.message }); // Ошибка сервера

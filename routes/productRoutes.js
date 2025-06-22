@@ -18,13 +18,6 @@ const authController = require('../controllers/authController');
 router.get('/', productController.getAllProducts);
 
 /**
- * @route GET /search
- * @description Поиск продуктов по заданным критериям.
- * @controller productController.searchProducts - Обрабатывает логику поиска продуктов.
- */
-router.get('/search', productController.searchProducts);
-
-/**
  * @route GET /:id
  * @description Получение информации о продукте по его ID.
  * @controller productController.getProductById - Обрабатывает логику получения продукта по ID.

@@ -102,9 +102,6 @@ class EmailService {
      */
     async sendVerificationEmail(userId, token) {
         try {
-            // Логирование попытки отправки письма для подтверждения email.
-            console.log(`Attempting to send verification email to user: ${userId}`);
-
             // Поиск пользователя в базе данных по его идентификатору.
             const user = await User.findById(userId);
 
@@ -116,7 +113,6 @@ class EmailService {
 
             // Формирование URL для подтверждения email с использованием токена.
             const verificationUrl = `${process.env.FRONTEND_URL}/verify-email/${token}`;
-            console.log(`Verification URL: ${verificationUrl}`);
 
             // Отправка письма для подтверждения email с использованием метода sendEmail.
             await this.sendEmail(
@@ -129,9 +125,6 @@ class EmailService {
                     expiresIn: '24 часа' // Время действия ссылки.
                 }
             );
-
-            // Логирование успешной отправки письма.
-            console.log('Verification email sent successfully');
         } catch (error) {
             // Логирование ошибки при отправке письма.
             console.error('Error in sendVerificationEmail:', error);

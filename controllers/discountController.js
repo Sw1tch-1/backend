@@ -6,6 +6,7 @@
 // Импорт необходимых моделей и библиотек
 const Discount = require('../models/Discount'); // Модель для работы со скидками
 const Product = require('../models/Product'); // Модель для работы с продуктами
+const DiscountService = require('../services/discountService'); // Сервис для работы со скидками
 
 /**
  * @class DiscountController

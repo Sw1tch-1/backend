@@ -21,48 +21,70 @@ class ProductController {
      */
     static async getAllProducts(req, res) {
         try {
-            const {category, minPrice, maxPrice, sortBy = 'name', sortOrder = 'asc'} = req.query;
+            const {query, category, minPrice, maxPrice, sortBy = 'name', sortOrder = 'asc'} = req.query;
+            const searchQuery = {isActive: true};
 
-            // Формирование запроса для фильтрации товаров.
-            const query = {isActive: true};
+            // Построение поискового запроса
+            if (query) {
+                searchQuery.$or = [
+                    {name: {$regex: query, $options: 'i'}},
+                    {description: {$regex: query, $options: 'i'}}
+                ];
+            }
 
-            if (category) query.category = category;
+            if (category) searchQuery.category = category;
             if (minPrice || maxPrice) {
-                query.price = {};
-                if (minPrice) query.price.$gte = Number(minPrice);
-                if (maxPrice) query.price.$lte = Number(maxPrice);
+                searchQuery.price = {};
+                if (minPrice) searchQuery.price.$gte = Number(minPrice);
+                if (maxPrice) searchQuery.price.$lte = Number(maxPrice);
             }
 
-            // Определение параметров сортировки.
-            let sortOptions = {};
-            switch (sortBy) {
-                case 'price':
-                    sortOptions = {price: sortOrder === 'asc' ? 1 : -1};
-                    break;
-                case 'discount':
-                    sortOptions = {createdAt: -1};
-                    break;
-                default:
-                    sortOptions = {name: sortOrder === 'asc' ? 1 : -1};
-            }
+            // Получаем продукты с базовой сортировкой
+            let products = await Product.find(searchQuery).lean();
 
+            // Применяем скидки
+            products = await DiscountService.applyBulkDiscounts(products, req.user?._id);
+
+            // Специальная обработка для сортировки по скидке
             if (sortBy === 'discount') {
                 products.sort((a, b) => {
-                    const discountA = a.discountInfo?.discountPercentage || 0;
-                    const discountB = b.discountInfo?.discountPercentage || 0;
+                    const discountA = a.discountPercentage || 0;
+                    const discountB = b.discountPercentage || 0;
                     return sortOrder === 'asc' ? discountA - discountB : discountB - discountA;
+                });
+            } else {
+                // Стандартная сортировка для других случаев
+                const sortOptions = {};
+                switch (sortBy) {
+                    case 'price':
+                        sortOptions.price = sortOrder === 'asc' ? 1 : -1;
+                        break;
+                    case 'newest':
+                        sortOptions.createdAt = sortOrder === 'asc' ? 1 : -1;
+                        break;
+                    default:
+                        sortOptions.name = sortOrder === 'asc' ? 1 : -1;
+                }
+                products.sort((a, b) => {
+                    const aValue = sortBy === 'price' ? a.discountedPrice :
+                        sortBy === 'newest' ? a.createdAt : a.name;
+                    const bValue = sortBy === 'price' ? b.discountedPrice :
+                        sortBy === 'newest' ? b.createdAt : b.name;
+                    return sortOrder === 'asc' ?
+                        (aValue > bValue ? 1 : -1) :
+                        (aValue < bValue ? 1 : -1);
                 });
             }
 
-            let products = await Product.find(query).sort(sortOptions).lean();
-
-            // Применение скидок к товарам.
-            products = await DiscountService.applyBulkDiscounts(products, req.user?._id);
-
-
-            res.json({success: true, products});
+            res.json({
+                success: true,
+                products
+            });
         } catch (error) {
-            res.status(500).json({success: false, error: error.message});
+            res.status(500).json({
+                success: false,
+                error: error.message
+            });
         }
     }
 
@@ -176,62 +198,6 @@ class ProductController {
         }
     }
 
-    /**
-     * Ищет продукты по заданным критериям.
-     * @async
-     * @function searchProducts
-     * @param {Object} req - Объект запроса Express.
-     * @param {Object} res - Объект ответа Express.
-     * @throws Возвращает 500 в случае внутренней ошибки сервера.
-     */
-    static async searchProducts(req, res) {
-        try {
-            const {query, category, minPrice, maxPrice, sortBy = 'name', sortOrder = 'asc'} = req.query;
-            const searchQuery = {isActive: true};
-
-            if (query) {
-                searchQuery.$or = [
-                    {name: {$regex: query, $options: 'i'}},
-                    {description: {$regex: query, $options: 'i'}}
-                ];
-            }
-
-            if (category) searchQuery.category = category;
-            if (minPrice || maxPrice) {
-                searchQuery.price = {};
-                if (minPrice) searchQuery.price.$gte = Number(minPrice);
-                if (maxPrice) searchQuery.price.$lte = Number(maxPrice);
-            }
-
-            let sortOptions = {};
-            switch (sortBy) {
-                case 'price':
-                    sortOptions = {price: sortOrder === 'asc' ? 1 : -1};
-                    break;
-                case 'discount':
-                    sortOptions = {createdAt: -1};
-                    break;
-                default:
-                    sortOptions = {name: sortOrder === 'asc' ? 1 : -1};
-            }
-
-            if (sortBy === 'discount') {
-                products.sort((a, b) => {
-                    const discountA = a.discountInfo?.discountPercentage || 0;
-                    const discountB = b.discountInfo?.discountPercentage || 0;
-                    return sortOrder === 'asc' ? discountA - discountB : discountB - discountA;
-                });
-            }
-
-            let products = await Product.find(searchQuery).sort(sortOptions).lean();
-            products = await DiscountService.applyBulkDiscounts(products, req.user?._id);
-
-
-            res.json({success: true, products});
-        } catch (error) {
-            res.status(500).json({success: false, error: error.message});
-        }
-    }
 
     /**
      * Восстанавливает продукт, делая его активным.

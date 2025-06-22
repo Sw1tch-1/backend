@@ -24,13 +24,13 @@ class FavoriteController {
     static async getFavorites(req, res) {
         try {
             // Поиск всех избранных товаров пользователя с использованием его ID
-            const favorites = await Favorite.find({ user: req.user._id })
-                .populate('product', 'name price imageUrl'); // Подключение данных о продукте
+            const favorites = await Favorite.findOne({ user: req.user._id })
+                .populate('products'); // Подключение данных о продукте
 
             // Успешный ответ с данными избранных товаров
             res.status(200).json({
                 success: true,
-                favorites
+                favorites: favorites
             });
         } catch (error) {
             // Обработка ошибки сервера
@@ -53,7 +53,7 @@ class FavoriteController {
     static async addToFavorites(req, res) {
         try {
             const { productId } = req.body; // Извлечение ID продукта из тела запроса
-
+            const userId = req.user._id;
             // Проверка существования продукта в базе данных
             const product = await Product.findById(productId);
             if (!product) {
@@ -63,24 +63,18 @@ class FavoriteController {
                 });
             }
 
-            // Проверка, добавлен ли уже продукт в избранное
-            const existingFavorite = await Favorite.findOne({
-                user: req.user._id, // ID пользователя из токена
-                product: productId // ID продукта
-            });
+            let favorite = await Favorite.findOne({ user: userId });
 
-            if (existingFavorite) {
+            if (!favorite) {
+                favorite = new Favorite({ user: userId, products: [productId] });
+            } else if (!favorite.products.includes(productId)) {
+                favorite.products.push(productId);
+            } else if (favorite.products.includes(productId)) {
                 return res.status(400).json({
                     success: false,
-                    error: 'Product already in favorites' // Ошибка: продукт уже в избранном
+                    message: 'Product already in favorites' // Ошибка: продукт уже в избранном
                 });
             }
-
-            // Создание нового избранного товара
-            const favorite = new Favorite({
-                user: req.user._id, // ID пользователя из токена
-                product: productId // ID продукта
-            });
 
             // Сохранение избранного товара в базе данных
             await favorite.save();
@@ -112,14 +106,16 @@ class FavoriteController {
     static async removeFromFavorites(req, res) {
         try {
             const { productId } = req.params; // Извлечение ID продукта из параметров запроса
+            const userId = req.user._id; // Получение ID пользователя из токена
 
             // Поиск и удаление избранного товара пользователя
-            const favorite = await Favorite.findOneAndDelete({
-                user: req.user._id, // ID пользователя из токена
-                product: productId // ID продукта
-            });
+            const favorite = await Favorite.findOneAndUpdate(
+                { user: userId },
+                { $pull: { products: productId } },
+                { new: true }
+            );
 
-            if (!favorite) {
+            if (!favorite.products.includes(productId)) {
                 return res.status(404).json({
                     success: false,
                     error: 'Favorite not found' // Ошибка: избранное не найдено
@@ -154,14 +150,13 @@ class FavoriteController {
 
             // Поиск избранного товара пользователя
             const favorite = await Favorite.findOne({
-                user: req.user._id, // ID пользователя из токена
-                product: productId // ID продукта
+                user: req.user._id // ID пользователя из токена
             });
 
             // Успешный ответ с информацией о том, является ли товар избранным
             res.status(200).json({
                 success: true,
-                isFavorite: !!favorite // Преобразование результата в булево значение
+                isFavorite: favorite.products.includes(productId)
             });
         } catch (error) {
             // Обработка ошибки сервера

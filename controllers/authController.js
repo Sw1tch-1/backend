@@ -228,7 +228,6 @@ class AuthController {
                 maxAge: 365 * 24 * 60 * 60 * 1000,
                 httpOnly: false
             });
-            console.log('Cookies:', req.cookies);
 
             // Формирование ответа с данными пользователя
             const userResponse = {

@@ -17,10 +17,6 @@ module.exports = (req, res, next) => {
     if (req.user?.userGroup === 'admin') {
         return next(); // Если пользователь администратор, передаем управление следующему middleware
     }
-    else {
-        // Логирование роли пользователя, если она не "admin"
-        console.log(req.user?.role);
-    }
 
     // Ответ с ошибкой 403, если пользователь не администратор
     res.status(403).json({ error: 'Forbidden: Admin rights required'});

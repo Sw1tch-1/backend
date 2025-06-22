@@ -7,6 +7,7 @@ const express = require('express');
 const router = express.Router();
 const newsletterController = require('../controllers/newsletterController');
 const adminMiddleware = require('../middleware/admin');
+const authMiddleware = require('../middleware/auth');
 const {validateEmail} = require('../middleware/validation');
 const authController = require('../controllers/authController');
 
@@ -14,17 +15,21 @@ const authController = require('../controllers/authController');
  * @route POST /subscribe
  * @description Маршрут для подписки на рассылку.
  * @middleware validateEmail - Проверяет корректность email перед обработкой запроса.
+ * @middleware authController.verifyToken - Проверяет токен авторизации пользователя.
+ * @middleware adminMiddleware - Проверяет, является ли пользователь авторизованным.
  * @controller newsletterController.subscribe - Обрабатывает логику подписки.
  */
-router.post('/subscribe', validateEmail, newsletterController.subscribe);
+router.post('/subscribe', validateEmail, authController.verifyToken, authMiddleware, newsletterController.subscribe);
 
 /**
  * @route POST /unsubscribe
  * @description Маршрут для отписки от рассылки.
  * @middleware validateEmail - Проверяет корректность email перед обработкой запроса.
+ * @middleware authController.verifyToken - Проверяет токен авторизации пользователя.
+ * @middleware adminMiddleware - Проверяет, является ли пользователь авторизованным.
  * @controller newsletterController.unsubscribe - Обрабатывает логику отписки.
  */
-router.post('/unsubscribe', validateEmail, newsletterController.unsubscribe);
+router.post('/unsubscribe', validateEmail, authController.verifyToken, authMiddleware, newsletterController.unsubscribe);
 
 /**
  * @route POST /send
